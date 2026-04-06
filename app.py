@@ -490,12 +490,9 @@ if calculate:
 
         for i, value in enumerate(money_df["Leftover Money"]):
             if value >= 0:
-                x_position = value + 5
-                ha = "left"
+                ax_money.text(value - 5, i, f"${value:,.0f}", va="center", ha="right", fontsize=9)
             else:
-                x_position = value - 8
-                ha = "right"
-            ax_money.text(x_position, i, f"${value:,.0f}", va="center", ha=ha, fontsize=9)
+                ax_money.text(value + 5, i, f"${value:,.0f}", va="center", ha="left", fontsize=9)
 
         ax_money.axvline(0, linestyle="--", linewidth=1)
         ax_money.set_xlabel("Dollars")
