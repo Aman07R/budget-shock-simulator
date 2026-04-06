@@ -179,7 +179,7 @@ def short_shock_label(shock_type, shock_amount):
     return shock_type
 
 def clean_scenario_name(label):
-    return label.replace("Combined: ", "Combined | ")
+    return label.replace("Combined: ", "Combined: ")
 
 def evaluate_scenario(label, values):
     _, prob = predict_financial_stress(**values)
