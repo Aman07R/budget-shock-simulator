@@ -384,7 +384,6 @@ if calculate:
         f"**${worst_row['Leftover Money']:,.0f}**."
     )
     
-    )
 
 else:
     st.info("Enter your monthly budget inputs and click Calculate Risk to generate results.")
