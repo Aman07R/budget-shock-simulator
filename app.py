@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import streamlit as st
 import pandas as pd
 import joblib
@@ -75,7 +74,7 @@ def build_breakdown_df(
     health_wellness,
     miscellaneous
 ):
-    breakdown_df = pd.DataFrame({
+    return pd.DataFrame({
         "Category": [
             "Housing",
             "Food",
@@ -99,11 +98,10 @@ def build_breakdown_df(
             miscellaneous
         ]
     })
-    return breakdown_df
 
-def plain_summary(total_funds, total_spending, leftover_money, stress_probability, level, top_category, top_amount):
+def summary_text(total_funds, total_spending, leftover_money, stress_probability, level, top_category):
     if leftover_money < 0:
-        budget_status = "Your current budget is negative, which increases financial pressure."
+        budget_status = "Your budget is currently negative, which increases financial pressure."
     elif leftover_money < 100:
         budget_status = "Your budget is still positive, but the remaining cushion is very small."
     else:
@@ -121,67 +119,79 @@ def plain_summary(total_funds, total_spending, leftover_money, stress_probabilit
         f"{budget_status} {spending_driver}"
     )
 
-def what_if_analysis(base_inputs, shock_type):
-    scenarios = []
+def apply_single_shock(values, shock_type, shock_amount):
+    updated = values.copy()
 
-    baseline = base_inputs.copy()
-    scenarios.append(("Current Budget", baseline))
+    if shock_type == "None" or shock_amount == 0:
+        return updated
 
     if shock_type == "Housing Increase":
-        s1 = base_inputs.copy()
-        s1["housing"] += 150
-        scenarios.append(("Housing +$150", s1))
-
-        s2 = base_inputs.copy()
-        s2["housing"] += 300
-        scenarios.append(("Housing +$300", s2))
-
+        updated["housing"] += shock_amount
     elif shock_type == "Income Drop":
-        s1 = base_inputs.copy()
-        s1["monthly_income"] = max(0, s1["monthly_income"] - 200)
-        scenarios.append(("Income -$200", s1))
-
-        s2 = base_inputs.copy()
-        s2["monthly_income"] = max(0, s2["monthly_income"] - 400)
-        scenarios.append(("Income -$400", s2))
-
+        updated["monthly_income"] = max(0, updated["monthly_income"] - shock_amount)
     elif shock_type == "Emergency Expense":
-        s1 = base_inputs.copy()
-        s1["miscellaneous"] += 150
-        scenarios.append(("Emergency +$150", s1))
-
-        s2 = base_inputs.copy()
-        s2["miscellaneous"] += 300
-        scenarios.append(("Emergency +$300", s2))
-
+        updated["miscellaneous"] += shock_amount
+    elif shock_type == "Food Cost Increase":
+        updated["food"] += shock_amount
+    elif shock_type == "Aid Reduction":
+        updated["financial_aid"] = max(0, updated["financial_aid"] - shock_amount)
     elif shock_type == "Discretionary Cut":
-        s1 = base_inputs.copy()
-        s1["entertainment"] = max(0, s1["entertainment"] - 50)
-        scenarios.append(("Entertainment -$50", s1))
+        updated["entertainment"] = max(0, updated["entertainment"] - shock_amount)
 
-        s2 = base_inputs.copy()
-        s2["entertainment"] = max(0, s2["entertainment"] - 100)
-        scenarios.append(("Entertainment -$100", s2))
+    return updated
 
+def format_shock_label(shock_type, shock_amount):
+    if shock_type in ["Income Drop", "Aid Reduction", "Discretionary Cut"]:
+        return f"{shock_type}: -${shock_amount}"
+    return f"{shock_type}: +${shock_amount}"
+
+def evaluate_scenario(label, values):
+    _, prob = predict_financial_stress(**values)
+    total_funds = values["monthly_income"] + values["financial_aid"]
+    total_spending = (
+        values["housing"] + values["food"] + values["transportation"] +
+        values["books_supplies"] + values["entertainment"] + values["personal_care"] +
+        values["technology"] + values["health_wellness"] + values["miscellaneous"]
+    )
+    leftover_money = total_funds - total_spending
+
+    return {
+        "Scenario": label,
+        "Total Funds": total_funds,
+        "Total Spending": total_spending,
+        "Leftover Money": leftover_money,
+        "Stress Probability": prob,
+        "Risk Level": risk_level(prob)
+    }
+
+def what_if_analysis(base_inputs, shock_type_1, shock_amount_1, shock_type_2, shock_amount_2):
     results = []
-    for label, values in scenarios:
-        _, prob = predict_financial_stress(**values)
-        total_funds = values["monthly_income"] + values["financial_aid"]
-        total_spending = (
-            values["housing"] + values["food"] + values["transportation"] +
-            values["books_supplies"] + values["entertainment"] + values["personal_care"] +
-            values["technology"] + values["health_wellness"] + values["miscellaneous"]
-        )
-        leftover_money = total_funds - total_spending
 
-        results.append({
-            "Scenario": label,
-            "Total Funds": total_funds,
-            "Total Spending": total_spending,
-            "Leftover Money": leftover_money,
-            "Stress Probability": prob,
-            "Risk Level": risk_level(prob)
-        })
+    results.append(evaluate_scenario("Current Budget", base_inputs.copy()))
+
+    has_first = shock_type_1 != "None" and shock_amount_1 > 0
+    has_second = shock_type_2 != "None" and shock_amount_2 > 0
+
+    if has_first:
+        first_values = apply_single_shock(base_inputs, shock_type_1, shock_amount_1)
+        first_label = format_shock_label(shock_type_1, shock_amount_1)
+        results.append(evaluate_scenario(first_label, first_values))
+
+    if has_second:
+        second_values = apply_single_shock(base_inputs, shock_type_2, shock_amount_2)
+        second_label = format_shock_label(shock_type_2, shock_amount_2)
+        results.append(evaluate_scenario(second_label, second_values))
+
+    if has_first and has_second:
+        combined_values = base_inputs.copy()
+        combined_values = apply_single_shock(combined_values, shock_type_1, shock_amount_1)
+        combined_values = apply_single_shock(combined_values, shock_type_2, shock_amount_2)
+
+        combined_label = (
+            f"Combined: {format_shock_label(shock_type_1, shock_amount_1)} and "
+            f"{format_shock_label(shock_type_2, shock_amount_2)}"
+        )
+        results.append(evaluate_scenario(combined_label, combined_values))
 
     return pd.DataFrame(results)
 
@@ -192,7 +202,7 @@ with st.sidebar:
     st.header("About This App")
     st.write(
         "This simulator estimates monthly financial stress risk using a trained machine learning model. "
-        "Adjust the inputs and see how budget shocks affect risk."
+        "Adjust the inputs and test how different budget shocks affect risk."
     )
 
     profile = st.selectbox(
@@ -264,9 +274,41 @@ with col1:
 
 with col2:
     st.subheader("Scenario Controls")
-    shock_type = st.selectbox(
-        "What-If Analysis",
-        ["Housing Increase", "Income Drop", "Emergency Expense", "Discretionary Cut"]
+
+    shock_options = [
+        "None",
+        "Housing Increase",
+        "Income Drop",
+        "Emergency Expense",
+        "Food Cost Increase",
+        "Aid Reduction",
+        "Discretionary Cut"
+    ]
+
+    st.markdown("**Shock Scenario 1**")
+    shock_type_1 = st.selectbox(
+        "Select First Shock",
+        shock_options,
+        index=1
+    )
+    shock_amount_1 = st.number_input(
+        "First Shock Amount ($)",
+        min_value=0,
+        value=50,
+        step=10
+    )
+
+    st.markdown("**Shock Scenario 2 (Optional)**")
+    shock_type_2 = st.selectbox(
+        "Select Second Shock",
+        shock_options,
+        index=0
+    )
+    shock_amount_2 = st.number_input(
+        "Second Shock Amount ($)",
+        min_value=0,
+        value=0,
+        step=10
     )
 
     calculate = st.button("Calculate Risk", type="primary", use_container_width=True)
@@ -304,7 +346,6 @@ if calculate:
     ).sort_values("Amount", ascending=False)
 
     top_category = breakdown_df.iloc[0]["Category"]
-    top_amount = breakdown_df.iloc[0]["Amount"]
 
     st.markdown("---")
     st.subheader("Results")
@@ -347,23 +388,27 @@ if calculate:
 
     st.subheader("Summary")
     st.write(
-        plain_summary(
+        summary_text(
             total_funds,
             total_spending,
             leftover_money,
             stress_probability,
             level,
-            top_category,
-            top_amount
+            top_category
         )
     )
 
-    st.subheader("What-If Shock Analysis")
-    shock_df = what_if_analysis(base_inputs, shock_type)
+    st.subheader("What If Shock Analysis")
+    shock_df = what_if_analysis(
+        base_inputs,
+        shock_type_1,
+        shock_amount_1,
+        shock_type_2,
+        shock_amount_2
+    )
 
-    shock_chart_df = shock_df.copy()
-    st.bar_chart(
-        shock_chart_df.set_index("Scenario")["Stress Probability"],
+    st.line_chart(
+        shock_df.set_index("Scenario")["Stress Probability"],
         use_container_width=True
     )
 
@@ -376,16 +421,13 @@ if calculate:
     st.dataframe(shock_display, use_container_width=True, hide_index=True)
 
     worst_row = shock_df.loc[shock_df["Stress Probability"].idxmax()]
-
     st.subheader("Key Insight")
-    insight_text = (
-        f"In the {shock_type.lower()} simulation, the highest-risk case is "
-        f"{worst_row['Scenario']}, with a predicted financial stress probability of "
+    st.write(
+        f"The highest risk case in this analysis is {worst_row['Scenario']}, "
+        f"with a predicted financial stress probability of "
         f"{worst_row['Stress Probability']:.1%} and leftover money of "
         f"${worst_row['Leftover Money']:,.0f}."
     )
-    st.write(insight_text)
-    
 
 else:
     st.info("Enter your monthly budget inputs and click Calculate Risk to generate results.")
