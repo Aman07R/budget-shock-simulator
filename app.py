@@ -375,13 +375,13 @@ if calculate:
 
     st.dataframe(shock_display, use_container_width=True, hide_index=True)
 
-        worst_row = shock_df.loc[shock_df["Stress Probability"].idxmax()]
-        st.subheader("Key Insight")
-        st.markdown(
-            f"In the **{shock_type.lower()}** simulation, the highest-risk case is "
-            f"**{worst_row['Scenario']}**, with a predicted financial stress probability of "
-            f"**{worst_row['Stress Probability']:.1%}** and leftover money of "
-            f"**${worst_row['Leftover Money']:,.0f}**."
+    worst_row = shock_df.loc[shock_df["Stress Probability"].idxmax()]
+    st.subheader("Key Insight")
+    st.markdown(
+        f"In the **{shock_type.lower()}** simulation, the highest-risk case is "
+        f"**{worst_row['Scenario']}**, with a predicted financial stress probability of "
+        f"**{worst_row['Stress Probability']:.1%}** and leftover money of "
+        f"**${worst_row['Leftover Money']:,.0f}**."
     )
     
     )
