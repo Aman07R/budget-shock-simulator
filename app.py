@@ -103,22 +103,22 @@ def build_breakdown_df(
 
 def plain_summary(total_funds, total_spending, leftover_money, stress_probability, level, top_category, top_amount):
     if leftover_money < 0:
-        situation = "Your budget is currently running negative, which suggests a higher chance of financial stress."
+        budget_status = "Your current budget is negative, which increases financial pressure."
     elif leftover_money < 100:
-        situation = "Your budget is still positive, but the cushion is very small, so even a minor shock could create pressure."
+        budget_status = "Your budget is still positive, but the remaining cushion is very small."
     else:
-        situation = "Your budget has some remaining room, which lowers immediate financial pressure."
+        budget_status = "Your budget has some remaining room, which reduces immediate pressure."
 
     if top_category == "Housing":
-        driver = "Housing is your biggest expense, which is often the main source of budget pressure."
+        spending_driver = "Housing is the largest expense and appears to be the main driver of risk."
     else:
-        driver = f"{top_category} is currently your biggest expense and is playing a major role in your monthly budget."
+        spending_driver = f"{top_category} is the largest expense and is contributing most to the overall budget load."
 
     return (
-        f"Your total monthly funds are ${total_funds:,.0f}, while total spending is ${total_spending:,.0f}. "
-        f"That leaves you with ${leftover_money:,.0f} at the end of the month. "
-        f"The model estimates a {stress_probability:.1%} probability of financial stress, which falls into the {level.lower()} risk category. "
-        f"{situation} {driver} Your largest spending category is {top_category} at ${top_amount:,.0f}."
+        f"You have ${total_funds:,.0f} in total monthly funds and ${total_spending:,.0f} in total spending, "
+        f"leaving ${leftover_money:,.0f} at month-end. The model estimates a {stress_probability:.1%} probability "
+        f"of financial stress, placing this budget in the {level.lower()} risk category. "
+        f"{budget_status} {spending_driver}"
     )
 
 def what_if_analysis(base_inputs, shock_type):
@@ -345,7 +345,7 @@ if calculate:
         display_df["Amount"] = display_df["Amount"].map(lambda x: f"${x:,.0f}")
         st.dataframe(display_df, use_container_width=True, hide_index=True)
 
-    st.subheader("Plain-English Summary")
+    st.subheader("Summary")
     st.write(
         plain_summary(
             total_funds,
