@@ -240,10 +240,7 @@ def what_if_analysis(base_inputs, shock_type_1, shock_amount_1, shock_type_2, sh
             f"Combined: {format_shock_label(shock_type_1, shock_amount_1)} + "
             f"{format_shock_label(shock_type_2, shock_amount_2)}"
         )
-        combined_chart_label = (
-            f"Combined | {short_shock_label(shock_type_1, shock_amount_1)} + "
-            f"{short_shock_label(shock_type_2, shock_amount_2)}"
-        )
+        combined_chart_label = "Combined"
 
         results.append({
             **evaluate_scenario(combined_label, combined_values),
@@ -522,10 +519,19 @@ if calculate:
 
     scenario_name = clean_scenario_name(worst_row["Scenario"])
 
-    st.write(
+    insight_text = (
         f"The highest-risk scenario is {scenario_name}. "
         f"It results in a financial stress probability of {worst_row['Stress Probability']:.1%} "
         f"and leftover money of ${worst_row['Leftover Money']:,.0f}."
+    )
+
+    st.markdown(
+        f"""
+        <div style="padding:12px 0; font-size:18px; line-height:1.6;">
+            {insight_text}
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
 else:
