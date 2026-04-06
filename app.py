@@ -140,6 +140,25 @@ def apply_single_shock(values, shock_type, shock_amount):
 
     return updated
 
+def format_shock_label(shock_type, shock_amount):
+    if shock_type == "None" or shock_amount == 0:
+        return "No Shock"
+
+    if shock_type == "Housing Increase":
+        return f"Housing Increase (${shock_amount:,.0f} increase)"
+    elif shock_type == "Income Drop":
+        return f"Income Drop (${shock_amount:,.0f} decrease)"
+    elif shock_type == "Emergency Expense":
+        return f"Emergency Expense (${shock_amount:,.0f} increase)"
+    elif shock_type == "Food Cost Increase":
+        return f"Food Cost Increase (${shock_amount:,.0f} increase)"
+    elif shock_type == "Aid Reduction":
+        return f"Aid Reduction (${shock_amount:,.0f} decrease)"
+    elif shock_type == "Discretionary Cut":
+        return f"Discretionary Cut (${shock_amount:,.0f} decrease)"
+
+    return shock_type
+
 def short_shock_label(shock_type, shock_amount):
     if shock_type == "None" or shock_amount == 0:
         return "No Shock"
@@ -158,7 +177,6 @@ def short_shock_label(shock_type, shock_amount):
         return f"Entertainment -${shock_amount}"
 
     return shock_type
-
 
 def clean_scenario_name(label):
     return label.replace("Combined: ", "Combined | ")
@@ -446,49 +464,49 @@ if calculate:
         shock_amount_2
     )
 
-viz_col1, viz_col2 = st.columns(2)
+    viz_col1, viz_col2 = st.columns(2)
 
-with viz_col1:
-    st.markdown("**Stress Probability by Scenario**")
-    prob_df = shock_df.copy().sort_values("Stress Probability", ascending=True)
+    with viz_col1:
+        st.markdown("**Stress Probability by Scenario**")
+        prob_df = shock_df.copy().sort_values("Stress Probability", ascending=True)
 
-    fig_prob, ax_prob = plt.subplots(figsize=(8, 4.6))
-    ax_prob.barh(prob_df["Chart Label"], prob_df["Stress Probability"])
+        fig_prob, ax_prob = plt.subplots(figsize=(8, 4.6))
+        ax_prob.barh(prob_df["Chart Label"], prob_df["Stress Probability"])
 
-    for i, value in enumerate(prob_df["Stress Probability"]):
-        ax_prob.text(min(value + 0.015, 1.01), i, f"{value:.1%}", va="center", fontsize=9)
+        for i, value in enumerate(prob_df["Stress Probability"]):
+            ax_prob.text(min(value + 0.015, 1.01), i, f"{value:.1%}", va="center", fontsize=9)
 
-    ax_prob.set_xlim(0, 1.05)
-    ax_prob.set_xlabel("Probability")
-    ax_prob.set_ylabel("")
-    ax_prob.set_title("Financial Stress Risk", fontsize=11)
-    ax_prob.tick_params(axis="y", labelsize=9)
-    plt.tight_layout()
-    st.pyplot(fig_prob)
+        ax_prob.set_xlim(0, 1.05)
+        ax_prob.set_xlabel("Probability")
+        ax_prob.set_ylabel("")
+        ax_prob.set_title("Financial Stress Risk", fontsize=11)
+        ax_prob.tick_params(axis="y", labelsize=9)
+        plt.tight_layout()
+        st.pyplot(fig_prob)
 
-with viz_col2:
-    st.markdown("**Leftover Money by Scenario**")
-    money_df = shock_df.copy().sort_values("Leftover Money", ascending=True)
+    with viz_col2:
+        st.markdown("**Leftover Money by Scenario**")
+        money_df = shock_df.copy().sort_values("Leftover Money", ascending=True)
 
-    fig_money, ax_money = plt.subplots(figsize=(8, 4.6))
-    ax_money.barh(money_df["Chart Label"], money_df["Leftover Money"])
+        fig_money, ax_money = plt.subplots(figsize=(8, 4.6))
+        ax_money.barh(money_df["Chart Label"], money_df["Leftover Money"])
 
-    for i, value in enumerate(money_df["Leftover Money"]):
-        if value >= 0:
-            x_position = value + 5
-            ha = "left"
-        else:
-            x_position = value - 8
-            ha = "right"
-        ax_money.text(x_position, i, f"${value:,.0f}", va="center", ha=ha, fontsize=9)
+        for i, value in enumerate(money_df["Leftover Money"]):
+            if value >= 0:
+                x_position = value + 5
+                ha = "left"
+            else:
+                x_position = value - 8
+                ha = "right"
+            ax_money.text(x_position, i, f"${value:,.0f}", va="center", ha=ha, fontsize=9)
 
-    ax_money.axvline(0, linestyle="--", linewidth=1)
-    ax_money.set_xlabel("Dollars")
-    ax_money.set_ylabel("")
-    ax_money.set_title("Leftover Money", fontsize=11)
-    ax_money.tick_params(axis="y", labelsize=9)
-    plt.tight_layout()
-    st.pyplot(fig_money)
+        ax_money.axvline(0, linestyle="--", linewidth=1)
+        ax_money.set_xlabel("Dollars")
+        ax_money.set_ylabel("")
+        ax_money.set_title("Leftover Money", fontsize=11)
+        ax_money.tick_params(axis="y", labelsize=9)
+        plt.tight_layout()
+        st.pyplot(fig_money)
 
     shock_display = shock_df.copy()
     shock_display = shock_display.drop(columns=["Chart Label"])
@@ -499,7 +517,6 @@ with viz_col2:
 
     st.dataframe(shock_display, use_container_width=True, hide_index=True)
 
-
     worst_row = shock_df.loc[shock_df["Stress Probability"].idxmax()]
     st.subheader("Key Insight")
 
@@ -509,7 +526,7 @@ with viz_col2:
         f"The highest-risk scenario is {scenario_name}. "
         f"It results in a financial stress probability of {worst_row['Stress Probability']:.1%} "
         f"and leftover money of ${worst_row['Leftover Money']:,.0f}."
-)
+    )
 
 else:
     st.info("Enter your monthly budget inputs and click Calculate Risk to generate results.")
